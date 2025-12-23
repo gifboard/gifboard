@@ -327,6 +327,16 @@ class GifBoardService : InputMethodService() {
             startActivity(intent)
         }
 
+        // Switch keyboard button (in search bar)
+        view.findViewById<ImageButton>(R.id.switch_button)?.setOnClickListener {
+            performKeyHaptic()
+            // Try to switch to previous IME, if not available show IME picker
+            if (!switchToPreviousInputMethod()) {
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.showInputMethodPicker()
+            }
+        }
+
         // Wire up keyboard keys
         setupKeyboard(view)
 

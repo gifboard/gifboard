@@ -56,11 +56,11 @@
     <string name="tutorial_step_tap_search">③ Tap the search bar in GifBoard</string>
     <string name="tutorial_step_search">④ Type a search query and tap search</string>
     <string name="tutorial_step_tap_gif">⑤ Tap a GIF to insert it</string>
-    <string name="tutorial_step_switch_back">⑥ Switch back using [GLOBE] globe or [KEYBOARD] keyboard icon</string>
+    <string name="tutorial_step_switch_back">⑥ Switch back using the [EXIT] exit button in the search bar</string>
     <string name="tutorial_step_success">✓ Success! You\'ve mastered GifBoard</string>
     
     <string name="tutorial_complete_title">You\'re All Set!</string>
-    <string name="tutorial_complete_desc">Switch keyboards anytime using [GLOBE] globe or [KEYBOARD] keyboard icon.</string>
+    <string name="tutorial_complete_desc">Switch back anytime using the [EXIT] exit button in GifBoard\'s search bar, or use [GLOBE] globe / [KEYBOARD] keyboard icon from other keyboards.</string>
     
     <string name="tutorial_restart">Restart Tutorial</string>
     <string name="tutorial_restart_summary">Show the setup tutorial again</string>

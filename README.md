@@ -37,13 +37,12 @@ Since GifBoard is only for GIF searching, you'll want to switch between it and y
 
 ### 2. Switch Keyboards While Typing
 1. Open any app and tap a text field to bring up your current keyboard.
-2. Look for the **Switching Icon** (varies by device and Android version):
-    - **Keyboard icon** (⌨️): Usually in the bottom-right or bottom-left corner of the navigation bar.
-    - **Globe icon** (🌐): Often found on the keyboard itself (especially in Gboard) next to the spacebar.
+2. **From GifBoard**: Tap the **Exit button** (➡️) in the top-right corner of the search bar to switch back to your previous keyboard.
+3. **From other keyboards**, look for the **Switching Icon** (varies by device and Android version):
+    - **Globe icon** (🌐): Often found on the keyboard next to the spacebar.
+    - **Keyboard icon** (⌨️): Usually in the navigation bar.
     - **Long-press Spacebar**: Many devices allow you to switch by long-pressing the spacebar.
-    - **Notification**: Some older devices show a "Change keyboard" option in the notification shade while typing.
-3. Tap the icon (or long-press space) and select **GifBoard** from the list.
-4. To go back to typing text, use the same keyboard switcher.
+4. Select **GifBoard** from the keyboard picker to use GIFs, then use the exit button to return to typing.
 
 ## Screenshots
 

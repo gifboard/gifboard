@@ -13,13 +13,14 @@ import androidx.core.content.ContextCompat
 object IconSpanHelper {
     
     /**
-     * Replaces [GLOBE] and [KEYBOARD] placeholders with inline icons.
+     * Replaces [GLOBE], [KEYBOARD], and [EXIT] placeholders with inline icons.
      */
     fun replaceIconPlaceholders(context: Context, text: CharSequence): SpannableString {
         val spannable = SpannableString(text)
         
         replaceWithIcon(context, spannable, "[GLOBE]", R.drawable.ic_language)
         replaceWithIcon(context, spannable, "[KEYBOARD]", R.drawable.ic_ime_switcher)
+        replaceWithIcon(context, spannable, "[EXIT]", R.drawable.ic_exit)
         
         return spannable
     }

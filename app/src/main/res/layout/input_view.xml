@@ -71,6 +71,16 @@
             android:contentDescription="Clear"
             android:visibility="gone" />
 
+        <ImageButton
+            android:id="@+id/switch_button"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_exit"
+            android:contentDescription="Switch keyboard"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:alpha="0.7"
+            android:padding="4dp" />
+
     </LinearLayout>
 
     <!-- Content Area (GIF Results + Keyboard Overlay) -->
