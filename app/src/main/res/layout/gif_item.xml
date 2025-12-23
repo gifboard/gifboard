@@ -1,0 +1,21 @@
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:fresco="http://schemas.android.com/apk/res-auto"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/gif_container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:foreground="?android:attr/selectableItemBackground"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="@android:color/transparent"
+    android:layout_margin="2dp">
+    
+    <com.gifboard.AspectRatioDraweeView 
+        android:id="@+id/gif_image"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:contentDescription="GIF"
+        fresco:fadeDuration="200"
+        fresco:actualImageScaleType="fitCenter"/>
+</androidx.cardview.widget.CardView>

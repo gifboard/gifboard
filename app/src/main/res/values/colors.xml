@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fallback colors for pre-Android 12 -->
+    <color name="md_theme_primary">#6750A4</color>
+    <color name="md_theme_onPrimary">#FFFFFF</color>
+    <color name="md_theme_primaryContainer">#EADDFF</color>
+    <color name="md_theme_secondary">#625B71</color>
+    <color name="md_theme_surface">#FFFBFE</color>
+    
+    <!-- Keyboard colors (dark mode fallback) -->
+    <color name="keyboard_background">#1B1B1B</color>
+    <color name="key_background">#3A3A3A</color>
+    <color name="key_background_pressed">#555555</color>
+    <color name="special_key_background">#2A2A2A</color>
+    <color name="special_key_background_pressed">#454545</color>
+    <color name="key_text">#FFFFFF</color>
+    <color name="search_bar_background">#2B2B2B</color>
+    <color name="search_bar_border_active">#8AB4F8</color>
+    <color name="search_key_background">#4285F4</color>
+    <color name="search_key_background_pressed">#5A9CF4</color>
+    <color name="history_header_background">#252525</color>
+</resources>

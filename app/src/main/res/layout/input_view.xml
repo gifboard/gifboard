@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/keyboard_background">
+
+    <!-- Search Bar -->
+    <LinearLayout
+        android:id="@+id/search_bar_container"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="8dp"
+        android:background="@drawable/search_bar_background"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageButton
+            android:id="@+id/settings_button"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_settings"
+            android:contentDescription="Settings"
+            android:layout_marginEnd="8dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:alpha="0.7"
+            android:padding="4dp" />
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1">
+            
+            <EditText
+                android:id="@+id/search_input"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:hint="@string/search_hint"
+                android:textColor="@color/key_text"
+                android:textColorHint="#888888"
+                android:textSize="16sp"
+                android:background="@null"
+                android:inputType="text"
+                android:focusable="false"
+                android:focusableInTouchMode="false"
+                android:clickable="false"
+                android:longClickable="false"
+                android:cursorVisible="true"
+                android:textCursorDrawable="@drawable/active_indicator"
+                android:maxLines="1" />
+                
+            <!-- Overlay to capture clicks when inactive -->
+            <View
+                android:id="@+id/search_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@null"
+                android:clickable="true"
+                android:focusable="true"/>
+                
+        </FrameLayout>
+
+        <ImageButton
+            android:id="@+id/clear_button"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Clear"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- Content Area (GIF Results + Keyboard Overlay) -->
+    <FrameLayout
+        android:id="@+id/content_area"
+        android:layout_width="match_parent"
+        android:layout_height="350dp">
+
+        <!-- GIF Results / History Container (fills entire space) -->
+        <FrameLayout
+            android:id="@+id/gif_results_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/gif_recycler"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <!-- Search History (visible when input is empty) -->
+            <LinearLayout
+                android:id="@+id/history_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:background="@color/keyboard_background"
+                android:visibility="gone">
+
+                <!-- Clear All Header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="8dp"
+                    android:background="@color/history_header_background">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Recent searches"
+                        android:textColor="#AAAAAA"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/clear_all_button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:text="Clear all"
+                        android:textColor="#8AB4F8"
+                        android:textSize="12sp"
+                        android:background="@null"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:padding="8dp" />
+
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/history_recycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+        <!-- Keyboard Overlay (on top of results, aligned to bottom) -->
+        <LinearLayout
+            android:id="@+id/keyboard_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:orientation="vertical"
+            android:background="@color/keyboard_background"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:elevation="4dp"
+            android:clickable="true"
+            android:focusable="false"
+            android:splitMotionEvents="true"
+            android:visibility="gone">
+
+            <!-- Row 1: QWERTYUIOP -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:orientation="horizontal"
+                android:paddingHorizontal="3dp"
+                android:splitMotionEvents="true">
+                <Button android:id="@+id/key_q" style="@style/KeyStyle" android:text="q"/>
+                <Button android:id="@+id/key_w" style="@style/KeyStyle" android:text="w"/>
+                <Button android:id="@+id/key_e" style="@style/KeyStyle" android:text="e"/>
+                <Button android:id="@+id/key_r" style="@style/KeyStyle" android:text="r"/>
+                <Button android:id="@+id/key_t" style="@style/KeyStyle" android:text="t"/>
+                <Button android:id="@+id/key_y" style="@style/KeyStyle" android:text="y"/>
+                <Button android:id="@+id/key_u" style="@style/KeyStyle" android:text="u"/>
+                <Button android:id="@+id/key_i" style="@style/KeyStyle" android:text="i"/>
+                <Button android:id="@+id/key_o" style="@style/KeyStyle" android:text="o"/>
+                <Button android:id="@+id/key_p" style="@style/KeyStyle" android:text="p"/>
+            </LinearLayout>
+
+            <!-- Row 2: ASDFGHJKL (indented) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:orientation="horizontal"
+                android:paddingHorizontal="18dp"
+                android:splitMotionEvents="true">
+                <Button android:id="@+id/key_a" style="@style/KeyStyle" android:text="a"/>
+                <Button android:id="@+id/key_s" style="@style/KeyStyle" android:text="s"/>
+                <Button android:id="@+id/key_d" style="@style/KeyStyle" android:text="d"/>
+                <Button android:id="@+id/key_f" style="@style/KeyStyle" android:text="f"/>
+                <Button android:id="@+id/key_g" style="@style/KeyStyle" android:text="g"/>
+                <Button android:id="@+id/key_h" style="@style/KeyStyle" android:text="h"/>
+                <Button android:id="@+id/key_j" style="@style/KeyStyle" android:text="j"/>
+                <Button android:id="@+id/key_k" style="@style/KeyStyle" android:text="k"/>
+                <Button android:id="@+id/key_l" style="@style/KeyStyle" android:text="l"/>
+            </LinearLayout>
+
+            <!-- Row 3: Shift ZXCVBNM Backspace -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:orientation="horizontal"
+                android:paddingHorizontal="3dp"
+                android:splitMotionEvents="true">
+                <ImageButton android:id="@+id/key_shift" 
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.5"
+                    android:background="@drawable/special_key_background"
+                    android:src="@drawable/ic_keyboard_shift"
+                    android:scaleType="center"
+                    android:contentDescription="Shift"/>
+                <Button android:id="@+id/key_z" style="@style/KeyStyle" android:text="z"/>
+                <Button android:id="@+id/key_x" style="@style/KeyStyle" android:text="x"/>
+                <Button android:id="@+id/key_c" style="@style/KeyStyle" android:text="c"/>
+                <Button android:id="@+id/key_v" style="@style/KeyStyle" android:text="v"/>
+                <Button android:id="@+id/key_b" style="@style/KeyStyle" android:text="b"/>
+                <Button android:id="@+id/key_n" style="@style/KeyStyle" android:text="n"/>
+                <Button android:id="@+id/key_m" style="@style/KeyStyle" android:text="m"/>
+                <ImageButton android:id="@+id/key_backspace" 
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.5"
+                    android:background="@drawable/special_key_background"
+                    android:src="@drawable/ic_keyboard_delete"
+                    android:scaleType="center"
+                    android:contentDescription="Backspace"/>
+            </LinearLayout>
+
+            <!-- Row 4: ?123 , Space . Search -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:orientation="horizontal"
+                android:paddingHorizontal="3dp"
+                android:splitMotionEvents="true">
+                <Button android:id="@+id/key_symbols" style="@style/SpecialKeyStyle" android:text="\?123" android:textSize="12sp" android:layout_weight="1.2"/>
+                <Button android:id="@+id/key_comma" style="@style/KeyStyle" android:text=","/>
+                <Button android:id="@+id/key_space" style="@style/KeyStyle" android:text="" android:layout_weight="4"/>
+                <Button android:id="@+id/key_period" style="@style/KeyStyle" android:text="."/>
+                <ImageButton android:id="@+id/key_search" 
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.2"
+                    android:background="@drawable/search_key_background"
+                    android:src="@drawable/ic_keyboard_search"
+                    android:scaleType="center"
+                    android:contentDescription="Search"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</LinearLayout>

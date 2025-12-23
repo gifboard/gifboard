@@ -1,0 +1,70 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+}
+
+android {
+    namespace = 'com.gifboard'
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.gifboard"
+        minSdk = 24
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    signingConfigs {
+        release {
+            if (project.hasProperty('RELEASE_STORE_FILE')) {
+                storeFile = file(RELEASE_STORE_FILE)
+                storePassword = RELEASE_STORE_PASSWORD
+                keyAlias = RELEASE_KEY_ALIAS
+                keyPassword = RELEASE_KEY_PASSWORD
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // F-Droid strips signingConfigs, so we need to check if it exists
+            try {
+                if (signingConfigs.hasProperty('release') && signingConfigs.release.storeFile != null) {
+                    signingConfig = signingConfigs.release
+                }
+            } catch (Exception ignored) {
+                // Signing config not available (e.g., F-Droid build)
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    
+    implementation 'com.facebook.fresco:fresco:3.6.0'
+    implementation 'com.facebook.fresco:animated-gif:3.6.0'
+    implementation 'com.facebook.fresco:imagepipeline-okhttp3:3.6.0'
+    
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'androidx.preference:preference-ktx:1.2.1'
+}

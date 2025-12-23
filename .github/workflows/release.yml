@@ -1,0 +1,63 @@
+# GitHub Actions workflow for automated signed APK releases
+# Triggers on version tags (v*)
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > /tmp/release.keystore
+
+      - name: Build Release APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease \
+            -PRELEASE_STORE_FILE=/tmp/release.keystore \
+            -PRELEASE_STORE_PASSWORD="${{ secrets.RELEASE_STORE_PASSWORD }}" \
+            -PRELEASE_KEY_ALIAS="${{ secrets.RELEASE_KEY_ALIAS }}" \
+            -PRELEASE_KEY_PASSWORD="${{ secrets.RELEASE_KEY_PASSWORD }}"
+
+      - name: Rename APK
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk GifBoard-${{ github.ref_name }}.apk
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: GifBoard-${{ github.ref_name }}.apk
+          generate_release_notes: true
+          body: |
+            ## GifBoard ${{ github.ref_name }}
+            
+            A specialized GIF keyboard for Android.
+            
+            ### Installation
+            1. Download the APK
+            2. Enable "Install from unknown sources" if prompted
+            3. Open the APK to install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

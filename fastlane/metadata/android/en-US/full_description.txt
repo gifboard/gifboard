@@ -1,0 +1,8 @@
+Search and share GIFs directly from your keyboard using Google Image Search.
+
+Key Features:
+- Seamless Integration: Search GIFs without leaving your current app.
+- Built-in Keyboard: QWERTY keyboard for quick searches.
+- Search History: Quickly recall recent searches.
+- Customizable: Adjust result columns, live previews, and vibration.
+- Content Safety: Neutral age verification required to disable SafeSearch.

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <androidx.preference.PreferenceCategory app:title="Search Settings">
+
+
+        <SeekBarPreference
+            app:defaultValue="2"
+            app:key="gif_columns"
+            android:max="4"
+            app:min="1"
+            app:showSeekBarValue="true"
+            app:title="GIF Result Columns" />
+
+        <SwitchPreference
+            app:defaultValue="true"
+            app:key="live_previews"
+            app:title="Live Previews"
+            app:summary="Use high-quality GIFs in results (uses more data)" />
+
+        <SwitchPreference
+            app:defaultValue="false"
+            app:key="link_on_long_press"
+            app:title="Insert Link on Long Press"
+            app:summary="Long press a GIF to insert its URL" />
+
+        <ListPreference
+            app:defaultValue="medium"
+            app:entries="@array/vibration_entries"
+            app:entryValues="@array/vibration_values"
+            app:key="vibration_strength"
+            app:title="Vibration Strength"
+            app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            app:key="advanced_settings"
+            app:title="Advanced Settings"
+            app:summary="Content Filtering" />
+
+    </androidx.preference.PreferenceCategory>
+
+
+
+    <androidx.preference.PreferenceCategory app:title="Setup">
+
+        <Preference
+            app:key="restart_tutorial"
+            app:title="@string/tutorial_restart"
+            app:summary="@string/tutorial_restart_summary" />
+
+        <Preference
+            app:key="check_updates"
+            app:title="Check for Updates"
+            app:summary="Download the latest release from GitHub" />
+
+    </androidx.preference.PreferenceCategory>
+
+</androidx.preference.PreferenceScreen>

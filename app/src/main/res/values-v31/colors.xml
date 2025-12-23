@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material You keyboard colors for Android 12+ -->
+    <!-- These use Material 3 dynamic color tones -->
+    <color name="keyboard_background">@android:color/system_neutral1_900</color>
+    <color name="key_background">@android:color/system_neutral1_700</color>
+    <color name="key_background_pressed">@android:color/system_neutral1_500</color>
+    <color name="special_key_background">@android:color/system_neutral1_800</color>
+    <color name="special_key_background_pressed">@android:color/system_neutral1_600</color>
+    <color name="key_text">@android:color/system_neutral1_50</color>
+    <color name="search_bar_background">@android:color/system_neutral1_800</color>
+    <color name="search_bar_border_active">@android:color/system_accent1_200</color>
+    <color name="search_key_background">@android:color/system_accent1_400</color>
+    <color name="search_key_background_pressed">@android:color/system_accent1_300</color>
+    <color name="history_header_background">@android:color/system_neutral1_800</color>
+</resources>

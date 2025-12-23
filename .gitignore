@@ -1,0 +1,32 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+local.properties
+
+# APK files
+*.apk
+*.aab
+
+# Log files
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+.venv/
+venv/
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class

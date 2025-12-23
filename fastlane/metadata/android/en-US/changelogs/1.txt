@@ -1,0 +1,8 @@
+Initial release featuring:
+- GIF search powered by Google Image Search
+- Built-in QWERTY keyboard for seamless searching
+- Search history with quick recall
+- Customizable SafeSearch levels with neutral age gating
+- Adjustable GIF result columns and live previews
+- Haptic feedback with configurable vibration strength
+- Long-press to insert GIF URL instead of image

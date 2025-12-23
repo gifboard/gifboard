@@ -1,0 +1,11 @@
+<resources>
+    <!-- Material You dynamic colors for Android 12+ -->
+    <style name="Theme.GifBoard" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Uses system dynamic colors via DynamicColors.applyToActivityIfAvailable() -->
+    </style>
+
+    <!-- Settings theme with action bar -->
+    <style name="Theme.GifBoard.Settings" parent="Theme.Material3.DayNight">
+        <!-- Uses system dynamic colors via DynamicColors.applyToActivityIfAvailable() -->
+    </style>
+</resources>

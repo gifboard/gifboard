@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GifBoard</string>
+    <string name="ime_name">GifBoard</string>
+    <string name="subtype_label">GIF Search and Send</string>
+    <string name="search_hint">Tap here to search GIFs</string>
+
+    <string-array name="vibration_entries">
+        <item>Off</item>
+        <item>Light</item>
+        <item>Medium</item>
+        <item>Strong</item>
+    </string-array>
+    
+    <string-array name="vibration_values">
+        <item>off</item>
+        <item>light</item>
+        <item>medium</item>
+        <item>strong</item>
+    </string-array>
+
+    <string-array name="safe_search_entries">
+        <item>Active (Strict)</item>
+        <item>Medium (Moderate)</item>
+        <item>Off (Unfiltered)</item>
+    </string-array>
+    
+    <string-array name="safe_search_values">
+        <item>active</item>
+        <item>medium</item>
+        <item>off</item>
+    </string-array>
+
+    <!-- Tutorial strings -->
+    <string name="tutorial_skip">Skip</string>
+    <string name="tutorial_next">Next</string>
+    <string name="tutorial_finish">Finish</string>
+    <string name="tutorial_settings">Settings</string>
+    
+    <string name="tutorial_welcome_title">Welcome to GifBoard!</string>
+    <string name="tutorial_welcome_desc">The GIF keyboard that lets you search and insert GIFs directly into any app.\n\nLet\'s get you set up in a few quick steps.</string>
+    
+    <string name="tutorial_enable_title">Welcome to GifBoard</string>
+    <string name="tutorial_enable_desc">Enable GifBoard in keyboard settings to get started.</string>
+    <string name="tutorial_enable_action">Open Settings</string>
+    
+    <string name="tutorial_switch_title">Switch to GifBoard</string>
+    <string name="tutorial_switch_desc">Now you need to select GifBoard as your active keyboard.\n\nTap the button below to open the keyboard picker, then select \"GifBoard\".</string>
+    <string name="tutorial_switch_action">Switch Keyboard</string>
+    
+    <string name="tutorial_try_title">Try It Out!</string>
+    
+    <!-- Interactive sub-step prompts -->
+    <string name="tutorial_step_tap_input">① Tap the input field below</string>
+    <string name="tutorial_step_switch_to_gifboard">② Switch to GifBoard using [GLOBE] globe or [KEYBOARD] keyboard icon</string>
+    <string name="tutorial_step_tap_search">③ Tap the search bar in GifBoard</string>
+    <string name="tutorial_step_search">④ Type a search query and tap search</string>
+    <string name="tutorial_step_tap_gif">⑤ Tap a GIF to insert it</string>
+    <string name="tutorial_step_switch_back">⑥ Switch back using [GLOBE] globe or [KEYBOARD] keyboard icon</string>
+    <string name="tutorial_step_success">✓ Success! You\'ve mastered GifBoard</string>
+    
+    <string name="tutorial_complete_title">You\'re All Set!</string>
+    <string name="tutorial_complete_desc">Switch keyboards anytime using [GLOBE] globe or [KEYBOARD] keyboard icon.</string>
+    
+    <string name="tutorial_restart">Restart Tutorial</string>
+    <string name="tutorial_restart_summary">Show the setup tutorial again</string>
+
+</resources>
