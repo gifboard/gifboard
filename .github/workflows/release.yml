@@ -36,18 +36,21 @@ jobs:
         run: |
           echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > /tmp/release.keystore
 
-      - name: Build Release APK
+      - name: Build Unsigned Release APK
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleRelease --max-workers=1 \
-            -PRELEASE_STORE_FILE=/tmp/release.keystore \
-            -PRELEASE_STORE_PASSWORD="${{ secrets.RELEASE_STORE_PASSWORD }}" \
-            -PRELEASE_KEY_ALIAS="${{ secrets.RELEASE_KEY_ALIAS }}" \
-            -PRELEASE_KEY_PASSWORD="${{ secrets.RELEASE_KEY_PASSWORD }}"
+          ./gradlew assembleRelease --max-workers=1
 
-      - name: Rename APK
+      - name: Sign APK with apksigner from build-tools 34
         run: |
-          cp app/build/outputs/apk/release/app-release.apk GifBoard-${{ github.ref_name }}.apk
+          # Use apksigner from build-tools 34 for F-Droid reproducibility
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
+            --ks /tmp/release.keystore \
+            --ks-pass pass:${{ secrets.RELEASE_STORE_PASSWORD }} \
+            --ks-key-alias ${{ secrets.RELEASE_KEY_ALIAS }} \
+            --key-pass pass:${{ secrets.RELEASE_KEY_PASSWORD }} \
+            --out GifBoard-${{ github.ref_name }}.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v1

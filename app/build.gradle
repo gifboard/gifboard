@@ -53,7 +53,6 @@ android {
     }
 
     // Reproducibility fixes
-    buildToolsVersion = "34.0.0"
 
     aaptOptions {
         // Disable PNG crunching for reproducible builds
