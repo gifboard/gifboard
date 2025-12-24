@@ -28,6 +28,10 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install build-tools 34 for reproducible builds
+        run: |
+          sdkmanager "build-tools;34.0.0"
+
       - name: Decode Keystore
         run: |
           echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > /tmp/release.keystore

@@ -48,6 +48,11 @@
 -dontwarn kotlinx.coroutines.**
 -keepclassmembers class kotlinx.coroutines.** { *; }
 
+# R8 ServiceLoader optimization can cause non-deterministic builds
+# Keep these classes to ensure reproducible DEX output
+-keep class kotlinx.coroutines.CoroutineExceptionHandler
+-keep class kotlinx.coroutines.internal.MainDispatcherFactory
+
 #-------------------------------------------
 # General Android
 #-------------------------------------------

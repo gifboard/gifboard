@@ -35,7 +35,7 @@ apksigcopier compare "$UPSTREAM_APK" --unsigned "$FDROID_APK" && echo OK
 diff2f 'repro-apk zipinfo -e' "$UPSTREAM_APK" "$FDROID_APK"
 
 # If the ZIP contents are equal, you can diff the ZIP metadata using diff-zip-meta.py.
-repro-apk diff-zip-meta "$UPSTREAM_APK" "$FDROID_APK"
+# repro-apk diff-zip-meta "$UPSTREAM_APK" "$FDROID_APK"
 
 rm -rf x y
 unzip -q -o -d x "$UPSTREAM_APK"

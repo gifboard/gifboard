@@ -30,6 +30,8 @@ android {
         release {
             minifyEnabled = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Disable VCS info for reproducible builds
+            vcsInfo.include false
             // F-Droid strips signingConfigs, so we need to check if it exists
             try {
                 if (signingConfigs.hasProperty('release') && signingConfigs.release.storeFile != null) {
@@ -49,6 +51,19 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+
+    // Reproducibility fixes
+    buildToolsVersion = "34.0.0"
+
+    aaptOptions {
+        // Disable PNG crunching for reproducible builds
+        cruncherEnabled = false
+    }
+
+    packagingOptions {
+        // Don't strip native libs to avoid reproducibility issues
+        doNotStrip '**/*.so'
+    }
 }
 
 dependencies {
@@ -67,4 +82,11 @@ dependencies {
     
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation 'androidx.preference:preference-ktx:1.2.1'
+}
+
+// Disable baseline.prof generation for reproducible builds
+tasks.whenTaskAdded { task ->
+    if (task.name.contains("ArtProfile")) {
+        task.enabled = false
+    }
 }
