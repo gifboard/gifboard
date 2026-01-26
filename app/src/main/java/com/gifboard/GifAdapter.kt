@@ -1,13 +1,17 @@
 package com.gifboard
 
+import android.graphics.drawable.Animatable
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.facebook.drawee.backends.pipeline.Fresco
+import com.facebook.drawee.controller.BaseControllerListener
+import com.facebook.imagepipeline.image.ImageInfo
 import org.json.JSONObject
 
 /**
@@ -73,12 +77,15 @@ class GifAdapter(
     private var isEndOfList = false
     private var livePreviews = true
     private var insertLinkOnLongPress = false
+    private var brokenGifBehavior = "hide" // "overlay", "hide", or "nothing"
 
-    fun setPreferences(livePreviews: Boolean, insertLink: Boolean) {
+    fun setPreferences(livePreviews: Boolean, insertLink: Boolean, brokenBehavior: String) {
         val liveChanged = this.livePreviews != livePreviews
+        val behaviorChanged = this.brokenGifBehavior != brokenBehavior
         this.livePreviews = livePreviews
         this.insertLinkOnLongPress = insertLink
-        if (liveChanged) {
+        this.brokenGifBehavior = brokenBehavior
+        if (liveChanged || behaviorChanged) {
             notifyDataSetChanged()
         }
     }
@@ -196,21 +203,54 @@ class GifAdapter(
 
     inner class GifViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val draweeView: AspectRatioDraweeView = itemView.findViewById(R.id.gif_image)
+        private val brokenOverlay: View = itemView.findViewById(R.id.broken_overlay)
+        private val brokenIcon: ImageView = itemView.findViewById(R.id.broken_icon)
 
         fun bind(gifItem: GifItem) {
+            // Show item (might be hidden from previous bind)
+            itemView.visibility = View.VISIBLE
+            itemView.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            
             draweeView.setGifAspectRatio(gifItem.aspectRatio)
             draweeView.colorFilter = null
+
+            // Reset overlay state based on item's current failure state and behavior setting
+            updateVisualState(gifItem)
 
             // Determine if this item should show/play live
             val showLive = livePreviews
 
             val uri = if (showLive) android.net.Uri.parse(gifItem.url) else android.net.Uri.parse(gifItem.thumbnailUrl ?: gifItem.url)
 
+            // Create controller listener to detect load failures (only matters when live previews enabled)
+            val controllerListener = object : BaseControllerListener<ImageInfo>() {
+                override fun onFinalImageSet(
+                    id: String?,
+                    imageInfo: ImageInfo?,
+                    animatable: Animatable?
+                ) {
+                    // Successfully loaded - clear failure state
+                    if (gifItem.isFullLoadFailed) {
+                        gifItem.isFullLoadFailed = false
+                        updateVisualState(gifItem)
+                    }
+                }
+
+                override fun onFailure(id: String?, throwable: Throwable?) {
+                    // Only track failure if live previews enabled (otherwise we're loading thumbnail which usually works)
+                    if (showLive) {
+                        gifItem.isFullLoadFailed = true
+                        updateVisualState(gifItem)
+                    }
+                }
+            }
+
             val controllerBuilder = Fresco.newDraweeControllerBuilder()
                 .setUri(uri)
                 .setAutoPlayAnimations(showLive)
                 .setRetainImageOnFailure(true)
                 .setOldController(draweeView.controller)
+                .setControllerListener(controllerListener)
 
             // If we are showing live, use thumbnail as low-res placeholder
             if (showLive && gifItem.thumbnailUrl != null) {
@@ -230,7 +270,36 @@ class GifAdapter(
                 }
             }
         }
+
+        private fun updateVisualState(gifItem: GifItem) {
+            val isBroken = gifItem.isFullLoadFailed && livePreviews
+            
+            when {
+                isBroken && brokenGifBehavior == "hide" -> {
+                    // Hide the item entirely
+                    itemView.visibility = View.GONE
+                    itemView.layoutParams.height = 0
+                    brokenOverlay.visibility = View.GONE
+                    brokenIcon.visibility = View.GONE
+                }
+                isBroken -> {
+                    // Default: "overlay" - show overlay indicator
+                    itemView.visibility = View.VISIBLE
+                    itemView.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    brokenOverlay.visibility = View.VISIBLE
+                    brokenIcon.visibility = View.VISIBLE
+                }
+                else -> {
+                    // Not broken - show item normally without overlay
+                    itemView.visibility = View.VISIBLE
+                    itemView.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    brokenOverlay.visibility = View.GONE
+                    brokenIcon.visibility = View.GONE
+                }
+            }
+        }
     }
 
     class LoadingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)
 }
+

@@ -11,4 +11,7 @@ data class GifItem(
 ) {
     val aspectRatio: Float
         get() = if (height > 0) width.toFloat() / height.toFloat() else 1f
+    
+    // Mutable state for tracking load failures (used when live previews enabled)
+    var isFullLoadFailed: Boolean = false
 }

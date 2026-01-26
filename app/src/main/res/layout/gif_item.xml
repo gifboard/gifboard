@@ -1,21 +1,52 @@
-<androidx.cardview.widget.CardView
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:fresco="http://schemas.android.com/apk/res-auto"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/gif_container"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:foreground="?android:attr/selectableItemBackground"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="0dp"
-    app:cardBackgroundColor="@android:color/transparent"
-    android:layout_margin="2dp">
-    
-    <com.gifboard.AspectRatioDraweeView 
-        android:id="@+id/gif_image"
+    android:layout_height="wrap_content">
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/gif_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:contentDescription="GIF"
-        fresco:fadeDuration="200"
-        fresco:actualImageScaleType="fitCenter"/>
-</androidx.cardview.widget.CardView>
+        android:foreground="?android:attr/selectableItemBackground"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@android:color/transparent"
+        android:layout_margin="2dp">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <com.gifboard.AspectRatioDraweeView
+                android:id="@+id/gif_image"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:contentDescription="GIF"
+                fresco:fadeDuration="200"
+                fresco:actualImageScaleType="fitCenter"/>
+
+            <!-- Overlay for broken GIFs (initially hidden) -->
+            <View
+                android:id="@+id/broken_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#80000000"
+                android:visibility="gone"/>
+
+            <ImageView
+                android:id="@+id/broken_icon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_link"
+                android:contentDescription="Link only"
+                android:visibility="gone"/>
+
+        </FrameLayout>
+
+    </androidx.cardview.widget.CardView>
+
+</FrameLayout>

@@ -31,6 +31,25 @@
         <item>off</item>
     </string-array>
 
+    <!-- Broken GIF behavior options -->
+    <string-array name="broken_gif_entries">
+        <item>Hide from results</item>
+        <item>Show overlay (inserts link)</item>
+    </string-array>
+
+    <string-array name="broken_gif_values">
+        <item>hide</item>
+        <item>overlay</item>
+    </string-array>
+
+    <!-- Toast messages -->
+    <string name="toast_gif_unavailable">GIF unavailable</string>
+    <string name="toast_link_inserted">Link inserted</string>
+
+    <!-- Settings -->
+    <string name="pref_broken_gif_title">Broken GIF Behavior</string>
+    <string name="pref_broken_gif_summary">Requires Live Previews enabled</string>
+
     <!-- Tutorial strings -->
     <string name="tutorial_skip">Skip</string>
     <string name="tutorial_next">Next</string>

@@ -4,7 +4,6 @@
 
     <androidx.preference.PreferenceCategory app:title="Search Settings">
 
-
         <SeekBarPreference
             app:defaultValue="2"
             app:key="gif_columns"
@@ -12,12 +11,6 @@
             app:min="1"
             app:showSeekBarValue="true"
             app:title="GIF Result Columns" />
-
-        <SwitchPreference
-            app:defaultValue="true"
-            app:key="live_previews"
-            app:title="Live Previews"
-            app:summary="Use high-quality GIFs in results (uses more data)" />
 
         <SwitchPreference
             app:defaultValue="false"
@@ -40,7 +33,24 @@
 
     </androidx.preference.PreferenceCategory>
 
+    <androidx.preference.PreferenceCategory app:title="GIF Insertion">
 
+        <SwitchPreference
+            app:defaultValue="true"
+            app:key="live_previews"
+            app:title="Live Previews"
+            app:summary="Load animated GIFs in results (enable to detect broken GIFs)" />
+
+        <ListPreference
+            app:defaultValue="hide"
+            app:entries="@array/broken_gif_entries"
+            app:entryValues="@array/broken_gif_values"
+            app:key="broken_gif_behavior"
+            app:title="@string/pref_broken_gif_title"
+            app:dependency="live_previews"
+            app:useSimpleSummaryProvider="true" />
+
+    </androidx.preference.PreferenceCategory>
 
     <androidx.preference.PreferenceCategory app:title="Setup">
 
@@ -57,3 +67,4 @@
     </androidx.preference.PreferenceCategory>
 
 </androidx.preference.PreferenceScreen>
+

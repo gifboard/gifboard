@@ -191,7 +191,8 @@ class GifBoardService : InputMethodService() {
 
               val livePreviews = prefs.getBoolean("live_previews", true)
               val insertLink = prefs.getBoolean("link_on_long_press", false)
-              adapter.setPreferences(livePreviews, insertLink)
+              val brokenBehavior = prefs.getString("broken_gif_behavior", "hide") ?: "hide"
+              adapter.setPreferences(livePreviews, insertLink, brokenBehavior)
 
               vibrationStrength = prefs.getString("vibration_strength", "medium") ?: "medium"
          }
@@ -269,7 +270,8 @@ class GifBoardService : InputMethodService() {
         gifRecycler.adapter = adapter
         val livePreviews = prefs.getBoolean("live_previews", true)
         val insertLink = prefs.getBoolean("link_on_long_press", false)
-        adapter.setPreferences(livePreviews, insertLink)
+        val brokenBehavior = prefs.getString("broken_gif_behavior", "hide") ?: "hide"
+        adapter.setPreferences(livePreviews, insertLink, brokenBehavior)
 
         gifRecycler.setItemViewCacheSize(20)
 
@@ -801,13 +803,13 @@ class GifBoardService : InputMethodService() {
         OkHttpClient().newCall(request).enqueue(object : okhttp3.Callback {
             override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
                 Log.e(TAG, "Failed to download GIF", e)
-                window.window?.decorView?.post { commitGifUrl(contentUri) }
+                window.window?.decorView?.post { handleDownloadFailure(contentUri) }
             }
 
             override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
                 if (!response.isSuccessful || response.body == null) {
                     Log.e(TAG, "Failed to download GIF: $response")
-                    window.window?.decorView?.post { commitGifUrl(contentUri) }
+                    window.window?.decorView?.post { handleDownloadFailure(contentUri) }
                     return
                 }
 
@@ -826,7 +828,7 @@ class GifBoardService : InputMethodService() {
                     }
                 } catch (e: java.io.IOException) {
                     Log.e(TAG, "Failed to save GIF", e)
-                    window.window?.decorView?.post { commitGifUrl(contentUri) }
+                    window.window?.decorView?.post { handleDownloadFailure(contentUri) }
                     return
                 }
 
@@ -834,6 +836,29 @@ class GifBoardService : InputMethodService() {
                 window.window?.decorView?.post { doCommitContent("GIF", "image/gif", file, linkUri) }
             }
         })
+    }
+
+    /**
+     * Handle download failure based on user preference.
+     * - If live previews disabled: always insert link (can't pre-detect broken GIFs)
+     * - If behavior is "hide": don't insert anything
+     * - If behavior is "overlay": insert link as fallback
+     */
+    private fun handleDownloadFailure(contentUri: String) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        val livePreviews = prefs.getBoolean("live_previews", true)
+        val brokenBehavior = prefs.getString("broken_gif_behavior", "hide") ?: "hide"
+        
+        if (!livePreviews) {
+            // Live previews disabled - can't pre-detect broken GIFs, so insert link
+            currentInputConnection?.commitText(contentUri, 1)
+        } else if (brokenBehavior == "hide") {
+            // User chose to hide broken GIFs - don't insert anything
+            // (user was already warned by the overlay in the UI)
+        } else {
+            // "overlay" - insert link as fallback
+            currentInputConnection?.commitText(contentUri, 1)
+        }
     }
 
     private fun doCommitContent(description: String, mimeType: String, file: File, linkUri: Uri) {
@@ -864,7 +889,8 @@ class GifBoardService : InputMethodService() {
         }
 
         if (!committed) {
-             commitGifUrl(linkUri.toString())
+            // App doesn't support GIF input - insert link as fallback
+            currentInputConnection?.commitText(linkUri.toString(), 1)
         }
     }
 
