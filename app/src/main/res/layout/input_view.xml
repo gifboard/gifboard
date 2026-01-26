@@ -116,7 +116,7 @@
                 android:background="@color/keyboard_background"
                 android:visibility="gone">
 
-                <!-- Clear All Header -->
+                <!-- History Tabs Header -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -127,12 +127,30 @@
                     android:background="@color/history_header_background">
 
                     <TextView
+                        android:id="@+id/tab_searches"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Searches"
+                        android:textColor="#8AB4F8"
+                        android:textStyle="bold"
+                        android:textSize="13sp"
+                        android:padding="8dp" />
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="16dp"
+                        android:background="#444"
+                        android:layout_marginHorizontal="8dp"/>
+
+                    <TextView
+                        android:id="@+id/tab_gifs"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Recent searches"
+                        android:text="GIFs"
                         android:textColor="#AAAAAA"
-                        android:textSize="12sp" />
+                        android:textSize="13sp"
+                        android:padding="8dp" />
 
                     <Button
                         android:id="@+id/clear_all_button"
@@ -148,10 +166,23 @@
 
                 </LinearLayout>
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/history_recycler"
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
+                    android:layout_height="match_parent">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/history_recycler"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="visible" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/gif_history_recycler"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone" />
+
+                </FrameLayout>
 
             </LinearLayout>
 

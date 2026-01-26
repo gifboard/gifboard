@@ -19,6 +19,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.core.content.FileProvider
 import androidx.core.view.inputmethod.InputConnectionCompat
 import androidx.core.view.inputmethod.InputContentInfoCompat
@@ -28,6 +29,7 @@ import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import androidx.preference.PreferenceManager
+import com.facebook.drawee.backends.pipeline.Fresco
 import java.io.File
 import java.io.FileOutputStream
 
@@ -61,8 +63,14 @@ class GifBoardService : InputMethodService() {
     // History UI
     private lateinit var historyContainer: View
     private lateinit var historyRecycler: RecyclerView
+    private lateinit var gifHistoryRecycler: RecyclerView
+    private lateinit var tabSearches: TextView
+    private lateinit var tabGifs: TextView
     private lateinit var clearAllButton: Button
+    
     private lateinit var historyAdapter: SearchHistoryAdapter
+    private lateinit var gifHistoryAdapter: GifHistoryAdapter
+    private var isGifHistoryTab = false
     private lateinit var historyDb: SearchHistoryDbHelper
 
     // Keyboard mode state
@@ -214,7 +222,10 @@ class GifBoardService : InputMethodService() {
         // History UI
         historyContainer = view.findViewById(R.id.history_container)
         historyRecycler = view.findViewById(R.id.history_recycler)
-        clearAllButton = view.findViewById(R.id.clear_all_button)
+        gifHistoryRecycler = view.findViewById<RecyclerView>(R.id.gif_history_recycler)
+        tabSearches = view.findViewById<TextView>(R.id.tab_searches)
+        tabGifs = view.findViewById<TextView>(R.id.tab_gifs)
+        clearAllButton = view.findViewById<Button>(R.id.clear_all_button)
 
         // Setup history adapter
         historyAdapter = SearchHistoryAdapter(
@@ -233,6 +244,45 @@ class GifBoardService : InputMethodService() {
         historyRecycler.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         historyRecycler.adapter = historyAdapter
 
+        // Setup GIF history adapter
+        gifHistoryAdapter = GifHistoryAdapter(
+            onItemClick = { file ->
+                performClickHaptic()
+                // For local files, we don't have a web link, so pass null for linkUri
+                // Do NOT pass file:// URI as it may cause crashes in some apps/InputContentInfo
+                doCommitContent("GIF", "image/gif", file, null)
+            },
+            onDeleteClick = { file ->
+                performKeyHaptic()
+                try {
+                    if (file.delete()) {
+                        gifHistoryAdapter.removeFile(file)
+                        if (gifHistoryAdapter.itemCount == 0) {
+                           // If empty, maybe switch back or just show empty?
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to delete file", e)
+                }
+            }
+        )
+        // Same layout manager as main results
+        gifHistoryRecycler.layoutManager = StaggeredGridLayoutManager(3, StaggeredGridLayoutManager.VERTICAL)
+        gifHistoryRecycler.adapter = gifHistoryAdapter
+        
+        // Tab listeners
+        tabSearches.setOnClickListener {
+            performClickHaptic()
+            isGifHistoryTab = false
+            updateHistoryTabs()
+        }
+        
+        tabGifs.setOnClickListener {
+            performClickHaptic()
+            isGifHistoryTab = true
+            updateHistoryTabs()
+        }
+
         // Hide keyboard when scrolling history
         historyRecycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -243,11 +293,22 @@ class GifBoardService : InputMethodService() {
         })
 
         // Clear all button
+        // Clear all button - context aware
         clearAllButton.setOnClickListener {
             performKeyHaptic()
-            historyDb.clearAll()
-            historyAdapter.clear()
-            updateHistoryVisibility()
+            if (isGifHistoryTab) {
+                // Clear GIF history files
+                val imagesDir = File(cacheDir, "images")
+                if (imagesDir.exists()) {
+                     imagesDir.listFiles()?.forEach { it.delete() }
+                }
+                gifHistoryAdapter.clear()
+            } else {
+                // Clear search text history
+                historyDb.clearAll()
+                historyAdapter.clear()
+            }
+            // Stay in history view
         }
 
         // Setup GIF adapter
@@ -437,20 +498,61 @@ class GifBoardService : InputMethodService() {
     private fun updateHistoryVisibility() {
         val isEmpty = searchInput.text.isNullOrEmpty()
         if (isEmpty) {
-            // Show history if there are items
-            val history = historyDb.getHistory()
-            if (history.isNotEmpty()) {
-                historyAdapter.setHistory(history)
-                historyContainer.visibility = View.VISIBLE
-                gifRecycler.visibility = View.GONE
-            } else {
-                historyContainer.visibility = View.GONE
-                gifRecycler.visibility = View.VISIBLE
-            }
+            historyContainer.visibility = View.VISIBLE
+            gifRecycler.visibility = View.GONE
+            updateHistoryTabs()
         } else {
             // Hide history, show GIF results
             historyContainer.visibility = View.GONE
             gifRecycler.visibility = View.VISIBLE
+        }
+    }
+
+    private fun updateHistoryTabs() {
+        if (isGifHistoryTab) {
+            // Active: GIF History
+            tabGifs.setTextColor(0xFF8AB4F8.toInt())
+            tabGifs.typeface = android.graphics.Typeface.DEFAULT_BOLD
+            
+            tabSearches.setTextColor(0xFFAAAAAA.toInt())
+            tabSearches.typeface = android.graphics.Typeface.DEFAULT
+
+            historyRecycler.visibility = View.GONE
+            gifHistoryRecycler.visibility = View.VISIBLE
+            
+            loadLocalGifHistory()
+        } else {
+            // Active: Search History
+            tabSearches.setTextColor(0xFF8AB4F8.toInt())
+            tabSearches.typeface = android.graphics.Typeface.DEFAULT_BOLD
+            
+            tabGifs.setTextColor(0xFFAAAAAA.toInt())
+            tabGifs.typeface = android.graphics.Typeface.DEFAULT
+
+            gifHistoryRecycler.visibility = View.GONE
+            historyRecycler.visibility = View.VISIBLE
+            
+            // Load text history
+            val history = historyDb.getHistory()
+            historyAdapter.setHistory(history)
+        }
+    }
+
+    private fun loadLocalGifHistory() {
+        scope.launch(Dispatchers.IO) {
+            val imagesDir = File(cacheDir, "images")
+            val files = if (imagesDir.exists()) {
+                imagesDir.listFiles()
+                    ?.filter { it.isFile && it.name.endsWith(".gif") }
+                    ?.sortedByDescending { it.lastModified() }
+                    ?: emptyList()
+            } else {
+                emptyList()
+            }
+            
+            withContext(Dispatchers.Main) {
+                gifHistoryAdapter.setFiles(files)
+            }
         }
     }
 
@@ -704,6 +806,7 @@ class GifBoardService : InputMethodService() {
         currentPage = 0
         hasMorePages = true
 
+        clearSearchCaches()
         adapter.clearAndReset()
         progressBar.visibility = View.VISIBLE
         isLoadingPage = true
@@ -861,7 +964,7 @@ class GifBoardService : InputMethodService() {
         }
     }
 
-    private fun doCommitContent(description: String, mimeType: String, file: File, linkUri: Uri) {
+    private fun doCommitContent(description: String, mimeType: String, file: File, linkUri: Uri?) {
         val editorInfo = currentInputEditorInfo ?: return
         val contentUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
 
@@ -877,20 +980,24 @@ class GifBoardService : InputMethodService() {
             }
         }
 
-        val inputContentInfo = InputContentInfoCompat(
-            contentUri,
-            ClipDescription(description, arrayOf(mimeType)),
-            linkUri
-        )
+        try {
+            val inputContentInfo = InputContentInfoCompat(
+                contentUri,
+                ClipDescription(description, arrayOf(mimeType)),
+                linkUri
+            )
 
-        var committed = false
-        currentInputConnection?.let { ic ->
-            committed = InputConnectionCompat.commitContent(ic, editorInfo, inputContentInfo, flag, null)
-        }
+            var committed = false
+            currentInputConnection?.let { ic ->
+                committed = InputConnectionCompat.commitContent(ic, editorInfo, inputContentInfo, flag, null)
+            }
 
-        if (!committed) {
-            // App doesn't support GIF input - insert link as fallback
-            currentInputConnection?.commitText(linkUri.toString(), 1)
+            if (!committed && linkUri != null) {
+                // App doesn't support GIF input - insert link as fallback
+                currentInputConnection?.commitText(linkUri.toString(), 1)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to commit content", e)
         }
     }
 
@@ -900,6 +1007,18 @@ class GifBoardService : InputMethodService() {
 
     override fun onFinishInput() {
         super.onFinishInput()
+        clearSearchCaches()
+    }
+
+    private fun clearSearchCaches() {
+        scope.launch(Dispatchers.IO) {
+            // Clear Fresco image cache (memory + disk)
+            try {
+                Fresco.getImagePipeline().clearCaches()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to clear Fresco caches", e)
+            }
+        }
     }
 
     override fun onDestroy() {

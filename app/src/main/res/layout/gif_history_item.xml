@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:fresco="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="4dp">
+
+    <com.facebook.drawee.view.SimpleDraweeView
+        android:id="@+id/history_image"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:background="#EEE"
+        fresco:actualImageScaleType="centerCrop"
+        fresco:roundedCornerRadius="8dp" />
+
+    <ImageButton
+        android:id="@+id/history_delete"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:background="@drawable/circle_background"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:padding="12dp"
+        android:layout_margin="0dp"
+        android:alpha="0.8"
+        android:contentDescription="Delete" />
+
+</FrameLayout>
