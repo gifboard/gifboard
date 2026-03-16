@@ -1,6 +1,5 @@
 # GifBoard - GIF Search Keyboard
 
-
 GifBoard is an Android Input Method Editor (IME) built for finding and sharing GIFs. It is a specialized companion tool designed to work alongside your primary text keyboard.
 
 > [!IMPORTANT]
@@ -11,10 +10,10 @@ GifBoard is an Android Input Method Editor (IME) built for finding and sharing G
 ## Features
 
 - **Discovery & Insertion**:
-    - **Native Image Support**: Inserts GIF files into apps that support direct image commits (e.g., WhatsApp, Telegram, Google Messages).
     - **Metadata & Embeds**: Uses IME APIs to provide metadata for GIF embeds in compatible apps (e.g., Discord, Slack).
-    - **Automatic Fallback**: Inserts a direct URL if the target app does not support rich content.
-    - **Search History**: Stores recent queries for quick access.
+    - **Native Image Support**: Inserts GIF files into apps that support direct image commits (e.g., WhatsApp, Telegram, Google Messages).
+    - **Automatic Fallback**: Option to insert a direct URL if the target app does not support rich content.
+    - **Recents**: Shows recent queries and sent GIFs for quick access.
 
 - **System Integration**:
     - **Material You Design**: Updates its interface colors based on the Android system's dynamic color palette (Android 12+).
@@ -22,12 +21,11 @@ GifBoard is an Android Input Method Editor (IME) built for finding and sharing G
 
 - **Input & Control**:
     - **Adjustable Haptics**: Vibration feedback with Light, Medium, and Strong strength settings.
-    - **Functional Enhancements**: Includes repeating backspace for continuous deletion and automated search bar focus handling.
-    - **Configurable SafeSearch**: Provides Strict, Moderate, and Off filtering levels, protected by an age verification dialog.
+    - **Configurable SafeSearch**: Provides Strict, Moderate, and Off filtering levels.
 
 ## How to Use
 
-Since GifBoard is only for GIF searching, you'll want to switch between it and your primary keyboard (like Gboard) dynamically.
+Since GifBoard is only for GIF searching, you'll want to switch between it and your primary keyboard (like Gboard / Swiftkey / Florisboard) dynamically.
 
 ### 1. Enable GifBoard
 1. Open your device **Settings**.
@@ -41,7 +39,7 @@ Since GifBoard is only for GIF searching, you'll want to switch between it and y
 3. **From other keyboards**, look for the **Switching Icon** (varies by device and Android version):
     - **Globe icon** (🌐): Often found on the keyboard next to the spacebar.
     - **Keyboard icon** (⌨️): Usually in the navigation bar.
-    - **Long-press Spacebar**: Many devices allow you to switch by long-pressing the spacebar.
+    - **Long-press Spacebar**: Some devices allow you to switch by long-pressing the spacebar.
 4. Select **GifBoard** from the keyboard picker to use GIFs, then use the exit button to return to typing.
 
 ## Screenshots
