@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.facebook.drawee.backends.pipeline.Fresco
 import com.facebook.drawee.controller.BaseControllerListener
 import com.facebook.imagepipeline.image.ImageInfo
-import org.json.JSONObject
 
 /**
  * RecyclerView adapter for displaying GIF search results.
@@ -26,50 +25,6 @@ class GifAdapter(
         private const val VIEW_TYPE_GIF = 0
         private const val VIEW_TYPE_LOADING = 1
         private const val VIEW_TYPE_END = 2
-        
-        fun parseGifs(jsonResponse: String): List<GifItem> {
-            val items = mutableListOf<GifItem>()
-            try {
-                val json = JSONObject(jsonResponse)
-                val ischj = json.optJSONObject("ischj")
-                if (ischj != null) {
-                    val resultsStr = ischj.optString("results")
-                    val results = org.json.JSONArray(resultsStr)
-                    for (i in 0 until results.length()) {
-                        val gif = results.getJSONObject(i)
-                        
-                        // Check size limit (10MB max)
-                        val sizeStr = gif.optString("os")
-                        if (isSizeTooLarge(sizeStr)) continue
-
-                        val url = gif.optString("ou")
-                        val thumbnailUrl = gif.optString("tu").takeIf { it.isNotEmpty() }
-                        val width = gif.optInt("ow", 200)
-                        val height = gif.optInt("oh", 200)
-                        if (url.isNotEmpty() && width > 0 && height > 0) {
-                            items.add(GifItem(url, thumbnailUrl, width, height))
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            return items
-        }
-
-        private fun isSizeTooLarge(sizeStr: String): Boolean {
-            if (sizeStr.isEmpty()) return false
-            try {
-                val upperStr = sizeStr.uppercase(java.util.Locale.US)
-                val value = upperStr.filter { it.isDigit() || it == '.' }.toFloatOrNull() ?: return false
-                return when {
-                    upperStr.endsWith("MB") -> value > 10.0f
-                    else -> false
-                }
-            } catch (e: Exception) {
-                return false
-            }
-        }
     }
 
     private val gifs = mutableListOf<GifItem>()

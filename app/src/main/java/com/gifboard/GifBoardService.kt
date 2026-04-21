@@ -15,6 +15,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
@@ -32,6 +33,8 @@ import androidx.preference.PreferenceManager
 import com.facebook.drawee.backends.pipeline.Fresco
 import java.io.File
 import java.io.FileOutputStream
+import android.webkit.WebView
+import android.webkit.CookieManager
 
 /**
  * Main InputMethodService for the GIF IME.
@@ -88,6 +91,7 @@ class GifBoardService : InputMethodService() {
 
     private lateinit var adapter: GifAdapter
     private val fetcher = GoogleGifFetcher()
+    private lateinit var headlessWebView: WebView
 
     // Backspace repeat handling
     private val backspaceHandler = Handler(Looper.getMainLooper())
@@ -209,6 +213,24 @@ class GifBoardService : InputMethodService() {
     override fun onCreateInputView(): View {
         val view = layoutInflater.inflate(R.layout.input_view, null)
         rootView = view
+
+        headlessWebView = WebView(this).apply {
+            visibility = View.GONE
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            
+            val cookieManager = CookieManager.getInstance()
+            cookieManager.setAcceptCookie(true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                cookieManager.setAcceptThirdPartyCookies(this, true)
+            }
+            
+            // Bypass Google's cookie consent banner while rejecting all tracking.
+            // See GoogleConsentCookies for details on the two-cookie protocol.
+            cookieManager.setCookie(".google.com", GoogleConsentCookies.buildConsentCookie())
+            cookieManager.setCookie(".google.com", GoogleConsentCookies.buildSocsCookie())
+        }
+        (view as? ViewGroup)?.addView(headlessWebView)
 
         searchInput = view.findViewById(R.id.search_input)
         clearButton = view.findViewById(R.id.clear_button)
@@ -814,37 +836,33 @@ class GifBoardService : InputMethodService() {
         // Notify tutorial
         TutorialEventBus.emit(TutorialEvent.SearchPerformed)
 
-        searchJob = scope.launch(Dispatchers.IO) {
+        searchJob = scope.launch(Dispatchers.Main) {
             try {
                 val prefs = PreferenceManager.getDefaultSharedPreferences(this@GifBoardService)
                 val safeSearch = prefs.getString("safe_search", "active") ?: "active"
+                val timeoutMs = prefs.getInt("search_timeout", 5) * 1000L
 
-                val response = fetcher.fetchGifs(GoogleGifFetcher.GifSearchRequest(query, 0, safeSearch))
-                val gifItems = GifAdapter.parseGifs(response)
+                val gifItems = fetcher.fetchGifs(headlessWebView, GoogleGifFetcher.GifSearchRequest(query, 0, safeSearch, timeoutMs))
 
-                withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
-                    isLoadingPage = false
+                progressBar.visibility = View.GONE
+                isLoadingPage = false
 
-                    if (gifItems.isEmpty()) {
-                        hasMorePages = false
-                        adapter.setEndOfList(true)
-                    } else {
-                        currentPage = 1
-                        adapter.setGifs(gifItems)
+                if (gifItems.isEmpty()) {
+                    hasMorePages = false
+                    adapter.setEndOfList(true)
+                } else {
+                    currentPage = 1
+                    adapter.setGifs(gifItems)
 
-                        // Auto-prefetch if content doesn't fill the view (can't scroll)
-                        gifRecycler.post {
-                            checkAndPrefetchIfNeeded()
-                        }
+                    // Auto-prefetch if content doesn't fill the view (can't scroll)
+                    gifRecycler.post {
+                        checkAndPrefetchIfNeeded()
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Search failed", e)
-                withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
-                    isLoadingPage = false
-                }
+                progressBar.visibility = View.GONE
+                isLoadingPage = false
             }
         }
     }
@@ -865,38 +883,34 @@ class GifBoardService : InputMethodService() {
         isLoadingPage = true
         adapter.setLoading(true)
 
-        scope.launch(Dispatchers.IO) {
+        scope.launch(Dispatchers.Main) {
             try {
                 val prefs = PreferenceManager.getDefaultSharedPreferences(this@GifBoardService)
                 val safeSearch = prefs.getString("safe_search", "active") ?: "active"
+                val timeoutMs = prefs.getInt("search_timeout", 5) * 1000L
 
-                val response = fetcher.fetchGifs(GoogleGifFetcher.GifSearchRequest(currentQuery, currentPage, safeSearch))
-                val gifItems = GifAdapter.parseGifs(response)
+                val gifItems = fetcher.fetchGifs(headlessWebView, GoogleGifFetcher.GifSearchRequest(currentQuery, currentPage, safeSearch, timeoutMs))
 
-                withContext(Dispatchers.Main) {
-                    adapter.setLoading(false)
+                adapter.setLoading(false)
 
-                    if (gifItems.isEmpty()) {
-                        hasMorePages = false
-                        adapter.setEndOfList(true)
-                    } else {
-                        currentPage++
-                        adapter.addGifs(gifItems)
+                if (gifItems.isEmpty()) {
+                    hasMorePages = false
+                    adapter.setEndOfList(true)
+                } else {
+                    currentPage++
+                    adapter.addGifs(gifItems)
 
-                        // Continue prefetching if still not scrollable
-                        gifRecycler.post {
-                            checkAndPrefetchIfNeeded()
-                        }
+                    // Continue prefetching if still not scrollable
+                    gifRecycler.post {
+                        checkAndPrefetchIfNeeded()
                     }
-
-                    isLoadingPage = false
                 }
+
+                isLoadingPage = false
             } catch (e: Exception) {
                 Log.e(TAG, "Load more failed", e)
-                withContext(Dispatchers.Main) {
-                    adapter.setLoading(false)
-                    isLoadingPage = false
-                }
+                adapter.setLoading(false)
+                isLoadingPage = false
             }
         }
     }
