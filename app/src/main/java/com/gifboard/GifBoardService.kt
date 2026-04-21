@@ -90,7 +90,7 @@ class GifBoardService : InputMethodService() {
     private var isSearchBarActive = false
 
     private lateinit var adapter: GifAdapter
-    private val fetcher = GoogleGifFetcher()
+    private lateinit var gifProvider: GifProvider
     private lateinit var headlessWebView: WebView
 
     // Backspace repeat handling
@@ -207,6 +207,10 @@ class GifBoardService : InputMethodService() {
               adapter.setPreferences(livePreviews, insertLink, brokenBehavior)
 
               vibrationStrength = prefs.getString("vibration_strength", "medium") ?: "medium"
+
+              if (::headlessWebView.isInitialized) {
+                  updateGifProvider()
+              }
          }
     }
 
@@ -231,6 +235,7 @@ class GifBoardService : InputMethodService() {
             cookieManager.setCookie(".google.com", GoogleConsentCookies.buildSocsCookie())
         }
         (view as? ViewGroup)?.addView(headlessWebView)
+        updateGifProvider()
 
         searchInput = view.findViewById(R.id.search_input)
         clearButton = view.findViewById(R.id.clear_button)
@@ -842,7 +847,7 @@ class GifBoardService : InputMethodService() {
                 val safeSearch = prefs.getString("safe_search", "active") ?: "active"
                 val timeoutMs = prefs.getInt("search_timeout", 5) * 1000L
 
-                val gifItems = fetcher.fetchGifs(headlessWebView, GoogleGifFetcher.GifSearchRequest(query, 0, safeSearch, timeoutMs))
+                val gifItems = gifProvider.search(query, 0, safeSearch, timeoutMs)
 
                 progressBar.visibility = View.GONE
                 isLoadingPage = false
@@ -889,7 +894,7 @@ class GifBoardService : InputMethodService() {
                 val safeSearch = prefs.getString("safe_search", "active") ?: "active"
                 val timeoutMs = prefs.getInt("search_timeout", 5) * 1000L
 
-                val gifItems = fetcher.fetchGifs(headlessWebView, GoogleGifFetcher.GifSearchRequest(currentQuery, currentPage, safeSearch, timeoutMs))
+                val gifItems = gifProvider.search(currentQuery, currentPage, safeSearch, timeoutMs)
 
                 adapter.setLoading(false)
 
@@ -1038,5 +1043,26 @@ class GifBoardService : InputMethodService() {
     override fun onDestroy() {
         super.onDestroy()
         scope.cancel()
+    }
+
+    private fun updateGifProvider() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        val providerKey = prefs.getString("gif_provider", "webview") ?: "webview"
+        
+        // Only update if the provider type has actually changed
+        val currentProvider = if (::gifProvider.isInitialized) gifProvider else null
+        
+        when (providerKey) {
+            "json_api" -> {
+                if (currentProvider !is JsonApiGifProvider) {
+                    gifProvider = JsonApiGifProvider()
+                }
+            }
+            else -> {
+                if (currentProvider !is GoogleGifFetcher) {
+                    gifProvider = GoogleGifFetcher(headlessWebView)
+                }
+            }
+        }
     }
 }

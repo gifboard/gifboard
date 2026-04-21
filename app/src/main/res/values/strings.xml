@@ -31,6 +31,17 @@
         <item>off</item>
     </string-array>
 
+    <!-- GIF search provider options -->
+    <string-array name="gif_provider_entries">
+        <item>Google Search (WebView - default)</item>
+        <item>Google Search (Legacy API - unreliable)</item>
+    </string-array>
+
+    <string-array name="gif_provider_values">
+        <item>webview</item>
+        <item>json_api</item>
+    </string-array>
+
     <!-- Broken GIF behavior options -->
     <string-array name="broken_gif_entries">
         <item>Hide from results</item>

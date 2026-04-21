@@ -15,7 +15,7 @@ import kotlin.coroutines.resumeWithException
  * Fetches and parses GIFs from Google Image Search using an invisible WebView.
  * Owns the full pipeline: fetch HTML → detect readiness → parse results.
  */
-class GoogleGifFetcher {
+class GoogleGifFetcher(private val webView: WebView) : GifProvider {
 
     companion object {
         private const val BASE_URL = "https://www.google.com/search"
@@ -70,32 +70,25 @@ class GoogleGifFetcher {
         }
     }
 
-    data class GifSearchRequest(
-        val query: String,
-        val pageIndex: Int = 0,
-        val safeSearch: String = "active",
-        val timeoutMs: Long = 5000
-    )
-
-    /**
-     * Fetches GIFs from Google Image Search.
-     * Uses regex polling to detect when results are ready or when the page is definitively empty.
-     * Returns a parsed list of GifItems, or an empty list on timeout/no results.
-     */
-    suspend fun fetchGifs(webView: WebView, request: GifSearchRequest): List<GifItem> = suspendCancellableCoroutine { cont ->
-        require(request.query.isNotBlank()) { "Query cannot be empty" }
+    override suspend fun search(
+        query: String,
+        page: Int,
+        safeSearch: String,
+        timeoutMs: Long
+    ): List<GifItem> = suspendCancellableCoroutine { cont ->
+        require(query.isNotBlank()) { "Query cannot be empty" }
 
         val params = mutableMapOf(
-            "q" to "${request.query} gif",
+            "q" to "$query gif",
             "udm" to "2",
             "tbs" to "itp:animated",
-            "safe" to request.safeSearch,
+            "safe" to safeSearch,
             "gl" to "US",
             "hl" to "en"
         )
 
-        if (request.pageIndex > 0) {
-            params["start"] = (request.pageIndex * 20).toString()
+        if (page > 0) {
+            params["start"] = (page * 20).toString()
         }
 
         val queryString = params.entries.joinToString("&") { (key, value) ->
@@ -113,7 +106,7 @@ class GoogleGifFetcher {
                 cont.resume(emptyList())
             }
         }
-        webView.postDelayed(timeoutRunnable, request.timeoutMs)
+        webView.postDelayed(timeoutRunnable, timeoutMs)
 
         webView.settings.userAgentString = USER_AGENT
 
