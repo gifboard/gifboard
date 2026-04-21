@@ -12,6 +12,15 @@
             app:showSeekBarValue="true"
             app:title="GIF Result Columns" />
 
+        <ListPreference
+            app:defaultValue="webview"
+            app:entries="@array/gif_provider_entries"
+            app:entryValues="@array/gif_provider_values"
+            app:key="gif_provider"
+            app:summary="Select the GIF search backend"
+            app:title="Search Method"
+            app:useSimpleSummaryProvider="true" />
+
         <SeekBarPreference
             app:defaultValue="5"
             app:key="search_timeout"
