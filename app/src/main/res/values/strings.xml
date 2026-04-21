@@ -84,4 +84,7 @@
     <string name="tutorial_restart">Restart Tutorial</string>
     <string name="tutorial_restart_summary">Show the setup tutorial again</string>
 
+    <string name="pref_search_timeout_title">Search Timeout (seconds)</string>
+    <string name="pref_search_timeout_summary">How long to wait for results before giving up</string>
+
 </resources>

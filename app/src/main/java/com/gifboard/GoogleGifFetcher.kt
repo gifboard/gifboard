@@ -1,65 +1,205 @@
 package com.gifboard
 
-import okhttp3.OkHttpClient
-import okhttp3.Request
+import android.graphics.Bitmap
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import kotlinx.coroutines.suspendCancellableCoroutine
+import org.json.JSONTokener
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
- * Fetches GIFs from Google Image Search.
+ * Fetches and parses GIFs from Google Image Search using an invisible WebView.
+ * Owns the full pipeline: fetch HTML → detect readiness → parse results.
  */
 class GoogleGifFetcher {
 
     companion object {
         private const val BASE_URL = "https://www.google.com/search"
-        private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 7 Build/MOB30X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Mobile Safari/537.36"
+        private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36"
+
+        // Shared regex: used for both polling detection and result parsing
+        // Flexible to extra metadata: [2, "id", ["thumbnail", h, w], ["full", h, w]]
+        val GIF_DATA_PATTERN = Regex("""\[\d+,\s*"[^"]*",\s*\["([^"]+)",\s*\d+,\s*\d+[^\]]*\],\s*\["([^"]+)",\s*(\d+),\s*(\d+)[^\]]*\]""")
+        
+        // Machine-readable "About 0 results" or the specific semantic text in the botstuff container.
+        // We use curly quotes [’‘] and ensure we're not matching CSS by avoiding bare class names.
+        val EMPTY_STATE_PATTERN = Regex("(?i)(\"About 0 results\"|id=\"botstuff\".*?It looks like there aren['’‘]t any|did not match any image results)")
+        private val UNICODE_ESCAPE = Regex("""\\u([0-9a-fA-F]{4})""")
+
+        private fun unescapeUnicode(s: String): String = UNICODE_ESCAPE.replace(s) { match ->
+            match.groupValues[1].toInt(16).toChar().toString()
+        }
+
+        /**
+         * Parses GIF metadata from Google Image Search HTML.
+         * Extracts thumbnail/full URLs, dimensions, and filters for .gif files.
+         * Deduplicates by full URL.
+         */
+
+        fun parseGifs(htmlResponse: String): List<GifItem> {
+            val items = mutableListOf<GifItem>()
+            val seenUrls = mutableSetOf<String>()
+            try {
+                val matches = GIF_DATA_PATTERN.findAll(htmlResponse)
+
+                for (match in matches) {
+                    val (thumbnailUrlEscaped, fullUrlEscaped, heightStr, widthStr) = match.destructured
+
+                    val thumbnailUrl = unescapeUnicode(thumbnailUrlEscaped)
+                    val fullUrl = unescapeUnicode(fullUrlEscaped)
+
+                    if (seenUrls.contains(fullUrl)) continue
+
+                    val width = widthStr.toIntOrNull() ?: 200
+                    val height = heightStr.toIntOrNull() ?: 200
+
+                    // Filter for gifs and valid sizes
+                    if (fullUrl.endsWith(".gif", ignoreCase = true) && width > 0 && height > 0) {
+                        items.add(GifItem(fullUrl, thumbnailUrl, width, height))
+                        seenUrls.add(fullUrl)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return items
+        }
     }
 
     data class GifSearchRequest(
-        val query: String, 
+        val query: String,
         val pageIndex: Int = 0,
-        val safeSearch: String = "active"
+        val safeSearch: String = "active",
+        val timeoutMs: Long = 5000
     )
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
-        .build()
-
-    fun fetchGifs(request: GifSearchRequest): String {
+    /**
+     * Fetches GIFs from Google Image Search.
+     * Uses regex polling to detect when results are ready or when the page is definitively empty.
+     * Returns a parsed list of GifItems, or an empty list on timeout/no results.
+     */
+    suspend fun fetchGifs(webView: WebView, request: GifSearchRequest): List<GifItem> = suspendCancellableCoroutine { cont ->
         require(request.query.isNotBlank()) { "Query cannot be empty" }
 
-        val params = mapOf(
+        val params = mutableMapOf(
             "q" to "${request.query} gif",
-            "tbm" to "isch", // "to be matched = image search"
-            "tbs" to "itp:animated", // "to be searched = image type: animated gifs"
-            "client" to "chrome",
+            "udm" to "2",
+            "tbs" to "itp:animated",
             "safe" to request.safeSearch,
-            "asearch" to "isch",
-            "async" to "ijn:${request.pageIndex},_fmt:json"
+            "gl" to "US",
+            "hl" to "en"
         )
+
+        if (request.pageIndex > 0) {
+            params["start"] = (request.pageIndex * 20).toString()
+        }
 
         val queryString = params.entries.joinToString("&") { (key, value) ->
             "${URLEncoder.encode(key, StandardCharsets.UTF_8.toString())}=${URLEncoder.encode(value, StandardCharsets.UTF_8.toString())}"
         }
 
+        webView.settings.userAgentString = USER_AGENT
+        
         val url = "$BASE_URL?$queryString"
+        var isFinished = false
 
-        val httpRequest = Request.Builder()
-            .url(url)
-            .header("User-Agent", USER_AGENT)
-            .get()
-            .build()
+        val timeoutRunnable = Runnable {
+            if (!isFinished && cont.isActive) {
+                isFinished = true
+                cont.resume(emptyList())
+            }
+        }
+        webView.postDelayed(timeoutRunnable, request.timeoutMs)
 
-        val response = client.newCall(httpRequest).execute()
-        var content = response.body?.string() ?: ""
+        webView.settings.userAgentString = USER_AGENT
 
-        // Strip security prefix
-        if (content.startsWith(")]}'")) {
-            content = content.substring(4).trim()
+        val pollRunnable = object : Runnable {
+            override fun run() {
+                if (isFinished || !cont.isActive) return
+
+                webView.evaluateJavascript("(function() { return document.documentElement.innerHTML; })();") { htmlResult ->
+                    if (isFinished || !cont.isActive) return@evaluateJavascript
+
+                    val html = try {
+                        JSONTokener(htmlResult).nextValue() as? String ?: htmlResult
+                    } catch (e: Exception) {
+                        htmlResult
+                    }
+
+                    val isGifDataMatched = GIF_DATA_PATTERN.containsMatchIn(html)
+                    val isEmptyStateMatched = EMPTY_STATE_PATTERN.containsMatchIn(html)
+
+                    // Unified Regex check: Success vs Early Exit
+                    when {
+                        isGifDataMatched -> {
+                            isFinished = true
+                            webView.removeCallbacks(timeoutRunnable)
+                            cont.resume(parseGifs(html))
+                        }
+                        isEmptyStateMatched -> {
+                            isFinished = true
+                            webView.removeCallbacks(timeoutRunnable)
+                            cont.resume(emptyList())
+                        }
+                        else -> {
+                            webView.postDelayed(this, 300) // Poll every 300ms
+                        }
+                    }
+                }
+            }
         }
 
-        return content
+        webView.webViewClient = object : WebViewClient() {
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                view?.evaluateJavascript("""
+                    (function() {
+                        window.dataLayer = window.dataLayer || [];
+                        function gtag(){dataLayer.push(arguments);}
+                        gtag('consent', 'default', {
+                          'ad_storage': 'denied',
+                          'ad_user_data': 'denied',
+                          'ad_personalization': 'denied',
+                          'analytics_storage': 'denied'
+                        });
+                    })();
+                """.trimIndent(), null)
+            }
+
+            override fun onPageFinished(view: WebView?, finishedUrl: String?) {
+                super.onPageFinished(view, finishedUrl)
+                if (isFinished || view == null) return
+
+                val currentUrl = finishedUrl ?: ""
+                if (currentUrl.contains("google.com/search")) {
+                    view.removeCallbacks(pollRunnable)
+                    view.post(pollRunnable)
+                }
+            }
+
+            override fun onReceivedError(view: WebView?, webReq: WebResourceRequest?, error: android.webkit.WebResourceError?) {
+                super.onReceivedError(view, webReq, error)
+                if (webReq?.isForMainFrame == true) {
+                    if (!isFinished) {
+                        isFinished = true
+                        webView.removeCallbacks(timeoutRunnable)
+                        webView.removeCallbacks(pollRunnable)
+                        if (cont.isActive) cont.resumeWithException(Exception("WebView error: ${error?.description}"))
+                    }
+                }
+            }
+        }
+
+        cont.invokeOnCancellation {
+            webView.removeCallbacks(timeoutRunnable)
+            webView.removeCallbacks(pollRunnable)
+            webView.stopLoading()
+        }
+
+        webView.loadUrl(url)
     }
 }

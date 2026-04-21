@@ -12,6 +12,15 @@
             app:showSeekBarValue="true"
             app:title="GIF Result Columns" />
 
+        <SeekBarPreference
+            app:defaultValue="5"
+            app:key="search_timeout"
+            android:max="15"
+            app:min="1"
+            app:showSeekBarValue="true"
+            app:title="@string/pref_search_timeout_title"
+            app:summary="@string/pref_search_timeout_summary" />
+
         <SwitchPreference
             app:defaultValue="false"
             app:key="link_on_long_press"
