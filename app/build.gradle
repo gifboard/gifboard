@@ -76,7 +76,7 @@ dependencies {
     
     implementation 'com.facebook.fresco:fresco:3.7.0'
     implementation 'com.facebook.fresco:animated-gif:3.7.0'
-    implementation 'com.facebook.fresco:imagepipeline-okhttp3:3.6.0'
+    implementation 'com.facebook.fresco:imagepipeline-okhttp3:3.7.0'
     
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'
     implementation 'androidx.preference:preference-ktx:1.2.1'
