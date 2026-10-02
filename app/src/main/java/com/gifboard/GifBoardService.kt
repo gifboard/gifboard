@@ -33,6 +33,8 @@ import androidx.preference.PreferenceManager
 import com.facebook.drawee.backends.pipeline.Fresco
 import java.io.File
 import java.io.FileOutputStream
+import java.security.DigestOutputStream
+import java.security.MessageDigest
 import android.webkit.WebView
 import android.webkit.CookieManager
 
@@ -46,6 +48,7 @@ class GifBoardService : InputMethodService() {
         private const val TAG = "GifBoardService"
         private const val PREFETCH_THRESHOLD = 8
         private const val DOUBLE_TAP_DELAY_MS = 300L
+        private val HASH_FILE_NAME = Regex("[0-9a-f]{64}\\.gif")
     }
 
     enum class KeyboardMode {
@@ -275,6 +278,9 @@ class GifBoardService : InputMethodService() {
         gifHistoryAdapter = GifHistoryAdapter(
             onItemClick = { file ->
                 performClickHaptic()
+                // History is ordered by mtime, so touching it on reuse keeps the list
+                // most-recently-used rather than leaving a re-sent GIF buried.
+                scope.launch(Dispatchers.IO) { file.setLastModified(System.currentTimeMillis()) }
                 // For local files, we don't have a web link, so pass null for linkUri
                 // Do NOT pass file:// URI as it may cause crashes in some apps/InputContentInfo
                 doCommitContent("GIF", "image/gif", file, null)
@@ -568,6 +574,7 @@ class GifBoardService : InputMethodService() {
     private fun loadLocalGifHistory() {
         scope.launch(Dispatchers.IO) {
             val imagesDir = File(cacheDir, "images")
+            dedupeGifHistory(imagesDir)
             val files = if (imagesDir.exists()) {
                 imagesDir.listFiles()
                     ?.filter { it.isFile && it.name.endsWith(".gif") }
@@ -576,11 +583,58 @@ class GifBoardService : InputMethodService() {
             } else {
                 emptyList()
             }
-            
+
             withContext(Dispatchers.Main) {
                 gifHistoryAdapter.setFiles(files)
             }
         }
+    }
+
+    /**
+     * Collapses duplicate history entries left behind by the old timestamp-based file names,
+     * renaming each survivor to its content hash so commitGif() can recognise it as already
+     * present. Entries the user re-used are kept at their most recent timestamp; the older
+     * copies are deleted.
+     *
+     * Self-limiting rather than a one-shot migration: once every entry is hash-named there is
+     * nothing to do, so the common case costs one directory listing and no hashing at all.
+     * Runs on Dispatchers.IO via its only caller.
+     */
+    private fun dedupeGifHistory(imagesDir: File) {
+        if (!imagesDir.exists()) return
+        val files = imagesDir.listFiles()?.filter { it.isFile && it.name.endsWith(".gif") } ?: return
+        if (files.all { HASH_FILE_NAME.matches(it.name) }) return
+
+        // Newest first, so the first file seen for a given hash is the one whose recency wins.
+        for (file in files.sortedByDescending { it.lastModified() }) {
+            try {
+                val target = File(imagesDir, "${sha256(file)}.gif")
+                if (target == file) continue
+
+                if (target.exists()) {
+                    target.setLastModified(maxOf(target.lastModified(), file.lastModified()))
+                    file.delete()
+                } else {
+                    val stamp = file.lastModified()
+                    if (file.renameTo(target)) target.setLastModified(stamp)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to dedupe ${file.name}", e)
+            }
+        }
+    }
+
+    private fun sha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(8192)
+            while (true) {
+                val read = input.read(buffer)
+                if (read <= 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xFF) }
     }
 
     private fun setupKeyboard(view: View) {
@@ -940,16 +994,34 @@ class GifBoardService : InputMethodService() {
                     Log.e(TAG, "Failed to create images directory")
                     return
                 }
-                val file = File(imagesDir, "${System.currentTimeMillis()}.gif")
 
+                // The GIF history is just this directory listed by mtime, so the file name is
+                // the identity of an entry. Naming by content hash rather than by timestamp is
+                // what makes re-using a GIF reuse its existing entry instead of adding a second
+                // one, and it also collapses the same GIF served from two different hosts.
+                // Staged under .part so a partial download is never listed as history.
+                val temp = File(imagesDir, "${System.currentTimeMillis()}.part")
+                val file: File
                 try {
+                    val digest = MessageDigest.getInstance("SHA-256")
                     response.body?.byteStream()?.use { input ->
-                        FileOutputStream(file).use { output ->
+                        DigestOutputStream(FileOutputStream(temp), digest).use { output ->
                             input.copyTo(output)
                         }
                     }
-                } catch (e: java.io.IOException) {
+                    val hash = digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xFF) }
+                    file = File(imagesDir, "$hash.gif")
+
+                    if (file.exists()) {
+                        temp.delete()
+                        // Already in history: float it back to the top rather than duplicate it.
+                        file.setLastModified(System.currentTimeMillis())
+                    } else if (!temp.renameTo(file)) {
+                        throw java.io.IOException("Failed to move ${temp.name} into place")
+                    }
+                } catch (e: Exception) {
                     Log.e(TAG, "Failed to save GIF", e)
+                    temp.delete()
                     window.window?.decorView?.post { handleDownloadFailure(contentUri) }
                     return
                 }
