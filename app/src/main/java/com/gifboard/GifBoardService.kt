@@ -35,6 +35,9 @@ import java.io.File
 import java.io.FileOutputStream
 import android.webkit.WebView
 import android.webkit.CookieManager
+import android.webkit.WebStorage
+import android.webkit.ValueCallback
+import kotlin.coroutines.resume
 
 /**
  * Main InputMethodService for the GIF IME.
@@ -46,6 +49,13 @@ class GifBoardService : InputMethodService() {
         private const val TAG = "GifBoardService"
         private const val PREFETCH_THRESHOLD = 8
         private const val DOUBLE_TAP_DELAY_MS = 300L
+        // Generous: if this elapses mid-reset the jar can be left empty, which sends the
+        // next request out unconsented. The callbacks normally fire in milliseconds.
+        private const val COOKIE_RESET_TIMEOUT_MS = 3000L
+        // Independent of the reset budget above: the recovery runs precisely because that one
+        // expired, so inheriting an already-elapsed deadline would defeat it.
+        private const val CONSENT_RESTORE_TIMEOUT_MS = 3000L
+        private const val GOOGLE_DOMAIN = ".google.com"
     }
 
     enum class KeyboardMode {
@@ -225,15 +235,14 @@ class GifBoardService : InputMethodService() {
             
             val cookieManager = CookieManager.getInstance()
             cookieManager.setAcceptCookie(true)
+            // Results are parsed from google.com itself, so nothing we need is ever
+            // carried on a third-party cookie -- only trackers embedded in the page
+            // set those. Refusing them costs no functionality.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                cookieManager.setAcceptThirdPartyCookies(this, true)
+                cookieManager.setAcceptThirdPartyCookies(this, false)
             }
-            
-            // Bypass Google's cookie consent banner while rejecting all tracking.
-            // See GoogleConsentCookies for details on the two-cookie protocol.
-            cookieManager.setCookie(".google.com", GoogleConsentCookies.buildConsentCookie())
-            cookieManager.setCookie(".google.com", GoogleConsentCookies.buildSocsCookie())
         }
+        scope.launch { seedConsentCookies() }
         (view as? ViewGroup)?.addView(headlessWebView)
         updateGifProvider()
 
@@ -847,6 +856,22 @@ class GifBoardService : InputMethodService() {
                 val safeSearch = prefs.getString("safe_search", "active") ?: "active"
                 val timeoutMs = prefs.getInt("search_timeout", 5) * 1000L
 
+                // Start each query from a clean jar, so whatever Google set during the
+                // previous search cannot be used to tie it to this one. Doing it here
+                // rather than only on dismissal is what makes it race-free: the reset
+                // completes before the request leaves, so a straggling response from an
+                // earlier session has nothing left to correlate against. Bounded, because
+                // a cookie callback that never fires must not wedge search entirely.
+                if (withTimeoutOrNull(COOKIE_RESET_TIMEOUT_MS) { resetCookieJar() } == null) {
+                    // The reset was interrupted, which can leave the jar emptied but not yet
+                    // re-seeded. Restore consent before issuing the request, and await the write
+                    // rather than firing and forgetting: an unconsented request comes back as the
+                    // consent interstitial, which parses as zero GIFs rather than as an error.
+                    // Chromium applies cookie operations in order, so this lands after any
+                    // removal still in flight.
+                    withTimeoutOrNull(CONSENT_RESTORE_TIMEOUT_MS) { seedConsentCookies() }
+                }
+
                 val gifItems = gifProvider.search(query, 0, safeSearch, timeoutMs)
 
                 progressBar.visibility = View.GONE
@@ -1027,6 +1052,60 @@ class GifBoardService : InputMethodService() {
     override fun onFinishInput() {
         super.onFinishInput()
         clearSearchCaches()
+        tearDownWebSession()
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        super.onFinishInputView(finishingInput)
+        // Hiding the keyboard or switching to another IME dismisses the view without
+        // finishing input, so onFinishInput never runs on those paths. When
+        // finishingInput is true, onFinishInput follows and tears down anyway.
+        if (!finishingInput) {
+            clearSearchCaches()
+            tearDownWebSession()
+        }
+    }
+
+    /**
+     * Bypasses Google's cookie consent banner while rejecting all tracking, suspending
+     * until the cookie store has actually accepted both cookies.
+     * See GoogleConsentCookies for details on the two-cookie protocol.
+     *
+     * The awaiting matters: setCookie() without a callback returns before the write
+     * reaches the network stack's cookie store. A request issued immediately afterwards
+     * therefore goes out unconsented, and Google answers with the consent interstitial
+     * instead of results -- which parses as zero GIFs, not as an error.
+     */
+    private suspend fun seedConsentCookies() = suspendCancellableCoroutine<Unit> { cont ->
+        val cookieManager = CookieManager.getInstance()
+        var pending = 2
+        val onWritten = ValueCallback<Boolean> {
+            if (--pending == 0) {
+                cookieManager.flush()
+                if (cont.isActive) cont.resume(Unit)
+            }
+        }
+        cookieManager.setCookie(GOOGLE_DOMAIN, GoogleConsentCookies.buildConsentCookie(), onWritten)
+        cookieManager.setCookie(GOOGLE_DOMAIN, GoogleConsentCookies.buildSocsCookie(), onWritten)
+    }
+
+    /**
+     * Empties the cookie jar and restores only the consent pair, suspending until the
+     * asynchronous removal has actually completed.
+     *
+     * Google re-identifies the jar on every search (NID, DV, __Secure-STRP) regardless of
+     * the reject-all SOCS cookie, which is what allows separate searches to be linked.
+     * Callers must await this before issuing a request, otherwise the re-seed races the
+     * in-flight wipe and the consent cookies are lost along with everything else.
+     */
+    private suspend fun resetCookieJar() {
+        val cookieManager = CookieManager.getInstance()
+        suspendCancellableCoroutine<Unit> { cont ->
+            cookieManager.removeAllCookies {
+                if (cont.isActive) cont.resume(Unit)
+            }
+        }
+        seedConsentCookies()
     }
 
     private fun clearSearchCaches() {
@@ -1036,6 +1115,35 @@ class GifBoardService : InputMethodService() {
                 Fresco.getImagePipeline().clearCaches()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to clear Fresco caches", e)
+            }
+        }
+    }
+
+    /**
+     * Ends the browsing session: destroys the loaded page, then empties the cookie jar.
+     *
+     * Dismissal only. This must never run on the search path: performSearch() calls
+     * clearSearchCaches() immediately before starting a new search job, so anything that
+     * cancels searchJob or navigates the WebView from there would tear down the very
+     * search being started.
+     *
+     * stopLoading() alone is not enough -- it aborts the pending navigation but leaves the
+     * loaded document running, and its JavaScript keeps issuing requests that are answered
+     * with fresh Set-Cookies. Navigating away is what actually destroys the page.
+     */
+    private fun tearDownWebSession() {
+        if (::headlessWebView.isInitialized) {
+            headlessWebView.stopLoading()
+            headlessWebView.loadUrl("about:blank")
+            headlessWebView.clearCache(true)
+            headlessWebView.clearHistory()
+        }
+        scope.launch(Dispatchers.Main) {
+            try {
+                WebStorage.getInstance().deleteAllData()
+                resetCookieJar()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to tear down web session", e)
             }
         }
     }
