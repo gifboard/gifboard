@@ -147,6 +147,11 @@ class GoogleGifFetcher(private val webView: WebView) : GifProvider {
         }
 
         webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                val host = request?.url?.host ?: return true
+                return host != "www.google.com" && host != "google.com"
+            }
+
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
                 view?.evaluateJavascript("""
